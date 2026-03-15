@@ -17,7 +17,7 @@ client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
 @dp.message(Command("start"))
 async def start(message: types.Message):
     add_user(message.from_user.id)
-    await message.answer("🤖 Привет!\n\n" 
+    await message.answer("🤖 Привет, {name}!\n\n" 
                          "Я AI помощник.\n"  
                          "Выберите функцию ниже 👇",
                          reply_markup=main_menu)
@@ -60,9 +60,12 @@ async def code_help(message: types.Message):
 async def ai_chat(message: types.Message):
 
     user_id = message.from_user.id
+
     if user_id not in user_context:
+        user_name = message.from_user.first_name
         user_context[user_id] = [
-            {"role": "system", "content": "Ты - полезный и дружелюбный AI помощник."}
+            {"role": "system",
+             "content": f"Ты - полезный и дружелюбный AI помощник. Пользователя зовут {user_name}. Иногда обращайся к нему по имени."}
         ]
 
     user_context[user_id].append(
