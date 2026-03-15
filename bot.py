@@ -17,7 +17,8 @@ client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
 @dp.message(Command("start"))
 async def start(message: types.Message):
     add_user(message.from_user.id)
-    await message.answer("🤖 Привет, {message.from_user.first_name}!\n\n" 
+    name = message.from_user.first_name
+    await message.answer(f"🤖 Привет, {name}!\n\n" 
                          "Я AI помощник.\n"  
                          "Выберите функцию ниже 👇",
                          reply_markup=main_menu)
