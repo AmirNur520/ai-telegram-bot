@@ -78,7 +78,54 @@ async def translate(message: types.Message):
 @dp.message(lambda message: message.text == "💻 Помощь с кодом")
 async def code_help(message: types.Message):
     await message.answer("Отправьте код или вопрос по программированию.")        
-    
+
+@dp.message(lambda message: message.voice)
+async def voice_handler(message: types.Message):
+    user_id = message.from_user.id
+    user_name = message.from_user.first_name
+
+    try:
+        await bot.send_chat_action(message.chat.id, ChatAction.TYPING)
+
+        file = await bot.get_file(message.voice.file_id)
+        file_path = file.file_path
+
+        await bot.download_file(file_path, "voice.ogg")
+
+        with open("voice.ogg", "rb") as audio:
+            transcription = client.audio.transcriptions.create(
+                file=audio,
+                model="whisper-large-v3",
+            )
+            user_text = transcription.text
+
+            messages = get_messages(user_id)
+
+            if not messages:
+                messages = [
+                    {"role": "system",
+                     "content": f"Ты очень умный AI помощник. Отвечай подробно и структурированно. "
+                       f"Пользователя зовут {user_name}. Иногда обращайся к нему по имени. "
+                       "Если вопрос связан с программированием - объясняй код и приводи примеры. "
+                       "Если вопрос общий - давай полезный развернутый ответ."
+                    }
+                ]
+            save_message(user_id, "user", user_text)
+            messages.append({"role": "user", "content": user_text})
+
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=messages
+            )
+            ai_text = response.choices[0].message.content
+            save_message(user_id, "assistant", ai_text)
+
+            await message.answer(f"🗣️ Вы сказали: {user_text}\n\n🤖 Ответ:\n{ai_text}") 
+
+    except Exception as e:
+        await message.answer("Извините, произошла ошибка при обработке вашего голосового сообщения.")
+        print(f"Ошибка при обработке голоса: {e}")
+
 @dp.message()
 async def ai_chat(message: types.Message):
 
