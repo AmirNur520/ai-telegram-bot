@@ -32,7 +32,9 @@ def save_message(user_id, role, content):
 def get_messages(user_id):
     cursor.execute('SELECT role, content FROM messages WHERE user_id = ?', (user_id,))
     rows = cursor.fetchall()
-    return list(reversed(rows))  # Возвращаем в обратном порядке для удобства использования в контексте
+
+    messages = [{"role": role, "content": content} for role, content in rows]
+    return list(reversed(messages))
 
 def clear_messages(user_id):
     cursor.execute('DELETE FROM messages WHERE user_id = ?', (user_id,))

@@ -102,7 +102,7 @@ async def voice_handler(message: types.Message):
 
             messages = get_messages(user_id)
 
-            if not messages:
+            if not messages or not isinstance(messages, list) or not all(isinstance(m, dict) and "role" in m for m in messages):
                 messages = [
                     {"role": "system",
                      "content": f"Ты очень умный AI помощник. Отвечай подробно и структурированно. "
@@ -111,6 +111,9 @@ async def voice_handler(message: types.Message):
                        "Если вопрос общий - давай полезный развернутый ответ."
                     }
                 ]
+            else:
+                pass
+
             save_message(user_id, "user", user_text)
             messages.append({"role": "user", "content": user_text})
 
@@ -135,7 +138,7 @@ async def ai_chat(message: types.Message):
 
     messages = get_messages(user_id)
 
-    if not messages:
+    if not messages or not isinstance(messages, list) or not all(isinstance(m, dict) and "role" in m for m in messages):
         messages = [
             {"role": "system",
              "content": f"Ты очень умный AI помощник. Отвечай подробно и структурированно. "
@@ -144,6 +147,8 @@ async def ai_chat(message: types.Message):
                "Если вопрос общий - давай полезный развернутый ответ."
             }
         ]
+    else:
+        pass
 
     save_message(user_id, "user", message.text)
     messages.append({"role": "user", "content": message.text})
@@ -172,7 +177,9 @@ async def ai_chat(message: types.Message):
 
 
 async def main():
-    await dp.start_polling(bot)
+    await bot.delete_webhook(drop_pending_updates=True)
+    print("Webhook очищен и очередь сброшена")
+    await dp.start_polling(bot, drop_pending_updates=True)
 
 if __name__ == "__main__":
     asyncio.run(main())
