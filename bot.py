@@ -121,22 +121,7 @@ async def voice_handler(message: types.Message):
             ai_text = response.choices[0].message.content
             save_message(user_id, "assistant", ai_text)
 
-            speech_file = f"voice_reply_{user_id}.mp3"
-
-            with open(speech_file, "wb") as f:
-                audio_response = client.audio.speech.create(
-                    model="playai-tts",
-                    voice="alloy",
-                    input=ai_text,
-                )
-                f.write(audio_response.read())
-
-            with open(speech_file, "rb") as audio:
-                await message.answer_voice(audio)
-
-            await message.answer(f"🗣️ Вы сказали: {user_text}\n\n🤖 Ответ:\n{ai_text}")
-
-            os.remove("speech_file") 
+            await message.answer(f"🗣️ Вы сказали: {user_text}\n\n🤖 Ответ:\n{ai_text}") 
 
     except Exception as e:
         await message.answer("Извините, произошла ошибка при обработке вашего голосового сообщения.")
