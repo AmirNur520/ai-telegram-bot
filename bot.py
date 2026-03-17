@@ -1,16 +1,15 @@
 import asyncio
+from aiogram.enums import ChatAction
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from openai import OpenAI
+from database import add_user, save_message, get_messages, clear_messages
 from keyboard import main_menu
 
 from config import BOT_TOKEN, GROQ_API_KEY
-from database import add_user
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
-
-user_context = {}
 
 client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
 
@@ -25,9 +24,32 @@ async def start(message: types.Message):
     
 @dp.message(Command("clear"))
 async def clear_context(message: types.Message):
-   user_context.pop(message.from_user.id, None)
+   clear_messages(message.from_user.id)
    await message.answer("🧠 Память диалога очищена.") 
-    
+
+@dp.message(Command("profile"))
+async def profile(message: types.Message):
+    user = message.from_user
+    await message.answer(f"👤 Профиль:\n\n"
+                         f"ID: {user.id}\n"
+                         f"Имя: {user.first_name}\n"
+                         f"Username: {user.username}"
+    )
+
+@dp.message(Command("help"))
+async def help_command(message: types.Message):
+    await message.answer(
+        "🤖 Возможности бота:\n\n"
+        "💬 Общение с AI\n"
+        "💻 Помощь с кодом\n"
+        "🌍 Перевод текста\n"
+        "🧠 Генерация идей\n\n"
+        "Команды:\n"
+        "/clear — очистить память\n"
+        "/profile — ваш профиль\n"
+        "/help — помощь"
+    )
+
 @dp.message(lambda message: message.text == "ℹ️ Помощь")  
 async def help_menu(message: types.Message):
     await message.answer(
@@ -61,29 +83,38 @@ async def code_help(message: types.Message):
 async def ai_chat(message: types.Message):
 
     user_id = message.from_user.id
+    user_name = message.from_user.first_name
 
-    if user_id not in user_context:
-        user_name = message.from_user.first_name
-        user_context[user_id] = [
+    messages = get_messages(user_id)
+
+    if not messages:
+        messages = [
             {"role": "system",
-             "content": f"Ты - полезный и дружелюбный AI помощник. Пользователя зовут {user_name}. Иногда обращайся к нему по имени."}
+             "content": f"Ты очень умный AI помощник. Отвечай подробно и структурированно. "
+               f"Пользователя зовут {user_name}. Иногда обращайся к нему по имени. "
+               "Если вопрос связан с программированием - объясняй код и приводи примеры. "
+               "Если вопрос общий - давай полезный развернутый ответ."
+            }
         ]
 
-    user_context[user_id].append(
-        {"role": "user", "content": message.text}
-    )    
+    save_message(user_id, "user", message.text)
+    messages.append({"role": "user", "content": message.text})
+
 
     try:
+        await bot.send_chat_action(message.chat.id, ChatAction.TYPING)
+
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=user_context[user_id]
+            messages=messages,
+            temperature=0.7,
+            max_tokens=2000,
+            top_p=1
         )
 
-        ai_text = response.choices[0].message.content
+        ai_text = response.choices[0].message.content or "⚠️ Пустой ответ от AI"
 
-        user_context[user_id].append(
-            {"role": "assistant", "content": ai_text}
-        )
+        save_message(user_id, "assistant", ai_text)
 
         await message.answer(ai_text)
 

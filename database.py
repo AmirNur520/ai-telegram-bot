@@ -10,8 +10,30 @@ CREATE TABLE IF NOT EXISTS users (
 )
 """)
 
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    role TEXT,
+    content TEXT
+)
+""")
+
 conn.commit()
 
 def add_user(user_id):
     cursor.execute('INSERT OR IGNORE INTO users (user_id) VALUES (?)', (user_id,))
+    conn.commit()
+
+def save_message(user_id, role, content):
+    cursor.execute('INSERT INTO messages (user_id, role, content) VALUES (?, ?, ?)', (user_id, role, content))
+    conn.commit()
+
+def get_messages(user_id):
+    cursor.execute('SELECT role, content FROM messages WHERE user_id = ?', (user_id,))
+    rows = cursor.fetchall()
+    return list(reversed(rows))  # Возвращаем в обратном порядке для удобства использования в контексте
+
+def clear_messages(user_id):
+    cursor.execute('DELETE FROM messages WHERE user_id = ?', (user_id,))
     conn.commit()
